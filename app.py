@@ -28,14 +28,26 @@ GRADE_ORDER = ["A", "B", "C", "D", "E"]
 st.set_page_config(page_title="Credit Risk Scorecard", layout="wide")
 
 
-def _chart_layout(fig, **kwargs):
+TEXT_PRIMARY = "#0b0b0b"
+TEXT_SECONDARY = "#3a3a3a"
+GRIDLINE = "#e1e0d9"
+
+
+def _chart_layout(fig, height=420, legend=None, margin=None, **kwargs):
+    legend_style = {"font": dict(color=TEXT_PRIMARY, size=13)}
+    if legend:
+        legend_style.update(legend)
     fig.update_layout(
         plot_bgcolor=SURFACE,
         paper_bgcolor=SURFACE,
-        font_color="#0b0b0b",
-        margin=dict(l=10, r=10, t=30, b=10),
+        font=dict(color=TEXT_PRIMARY, size=14),
+        legend=legend_style,
+        height=height,
+        margin=margin or dict(l=10, r=10, t=30, b=10),
         **kwargs,
     )
+    fig.update_xaxes(color=TEXT_SECONDARY, gridcolor=GRIDLINE, tickfont=dict(size=13))
+    fig.update_yaxes(color=TEXT_SECONDARY, gridcolor=GRIDLINE, tickfont=dict(size=13))
     return fig
 
 
@@ -120,36 +132,37 @@ else:
     fig.add_vline(x=cutoff_val, line_dash="dash", line_color=COLOR_MUTED)
     fig.update_yaxes(tickformat=".0%")
     fig.update_xaxes(title="컷오프 점수")
-    _chart_layout(fig, legend=dict(orientation="h", y=1.1))
+    _chart_layout(fig, height=460, legend=dict(orientation="h", y=1.12))
     st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
-left, right = st.columns(2)
+st.subheader("등급별 분포 (A-E)")
+if scores.empty:
+    st.info("이 run에는 등급 데이터가 없습니다.")
+else:
+    grade_stats = (
+        scores.groupby("grade")
+        .agg(count=("sk_id_curr", "size"))
+        .reindex(GRADE_ORDER)
+        .reset_index()
+    )
+    fig2 = px.bar(grade_stats, x="grade", y="count", color="grade", text="count",
+                   color_discrete_map=GRADE_COLORS, category_orders={"grade": GRADE_ORDER})
+    fig2.update_traces(textposition="outside", textfont=dict(color=TEXT_PRIMARY, size=13))
+    fig2.update_layout(showlegend=False)
+    _chart_layout(fig2, height=380)
+    st.plotly_chart(fig2, use_container_width=True)
 
-with left:
-    st.subheader("등급별 분포 (A-E)")
-    if scores.empty:
-        st.info("이 run에는 등급 데이터가 없습니다.")
-    else:
-        grade_stats = (
-            scores.groupby("grade")
-            .agg(count=("sk_id_curr", "size"))
-            .reindex(GRADE_ORDER)
-            .reset_index()
-        )
-        fig2 = px.bar(grade_stats, x="grade", y="count", color="grade",
-                       color_discrete_map=GRADE_COLORS, category_orders={"grade": GRADE_ORDER})
-        fig2.update_layout(showlegend=False)
-        _chart_layout(fig2)
-        st.plotly_chart(fig2, use_container_width=True)
-
-with right:
-    st.subheader("IV 상위 변수 (Top 15)")
-    top_iv = iv_summary.head(15).sort_values("iv_value")
-    fig3 = px.bar(top_iv, x="iv_value", y="feature_name", orientation="h",
-                   color_discrete_sequence=[COLOR_BLUE])
-    _chart_layout(fig3)
-    st.plotly_chart(fig3, use_container_width=True)
+st.subheader("IV 상위 변수 (Top 15)")
+top_iv = iv_summary.head(15).sort_values("iv_value")
+fig3 = px.bar(top_iv, x="iv_value", y="feature_name", orientation="h",
+               color_discrete_sequence=[COLOR_BLUE], text="iv_value")
+fig3.update_traces(texttemplate="%{text:.3f}", textposition="outside",
+                    textfont=dict(color=TEXT_PRIMARY, size=12))
+fig3.update_yaxes(title=None)
+fig3.update_xaxes(range=[0, top_iv["iv_value"].max() * 1.3])
+_chart_layout(fig3, height=520, margin=dict(l=10, r=60, t=30, b=10))
+st.plotly_chart(fig3, use_container_width=True)
 
 st.divider()
 st.subheader("PSI 안정성 점검")
