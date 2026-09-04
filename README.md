@@ -3,29 +3,35 @@
 Home Credit Default Risk(Kaggle) 데이터를 사용해 실제 여신심사 업무 흐름을
 처음부터 끝까지 재현하는 포트폴리오 프로젝트입니다.
 
-변수처리 → WoE/IV 스코어카드 → 고도화 모델(LightGBM) → 챔피언-챌린저 비교 →
-등급설계(A-E) → 컷오프 시뮬레이션(승인율/부도율/손실률) → 안정성(PSI)/해석(SHAP)
-→ Streamlit 대시보드 → 자소서/면접용 요약 문서(.docx)
+변수처리(application + bureau + previous_application 결합 피처 엔지니어링) → WoE/IV
+스코어카드 → 고도화 모델(LightGBM) → 챔피언-챌린저 비교 → 등급설계(A-E) →
+컷오프 시뮬레이션(승인율/부도율/손실률) → 안정성(PSI)/해석(SHAP) →
+Streamlit 대시보드 → 자소서/면접용 요약 문서(.docx)
 
 ## 챔피언-챌린저 결과 요약
 
+application_train.csv 단독 대비, 신용정보(bureau) + 과거 대출 이력(previous_application)을
+결합한 피처 엔지니어링으로 AUC가 로지스틱 +0.0059pt, LightGBM +0.0104pt 개선되었습니다.
+
 | model | AUC | KS | Gini |
 |---|---|---|---|
-| 로지스틱 (WoE 스코어카드, 베이스라인) | 0.7428 | 0.3684 | 0.4856 |
-| **LightGBM (고도화 모델, 챔피언)** | **0.7605** | **0.3922** | **0.5209** |
+| 로지스틱 (WoE 스코어카드, 베이스라인) | 0.7487 | 0.3752 | 0.4973 |
+| **LightGBM (고도화 모델, 챔피언)** | **0.7709** | **0.4057** | **0.5417** |
 
-LightGBM이 베이스라인 대비 AUC +0.0177pt(사전 정의 채택 기준 0.01 초과)로 우세해
+LightGBM이 베이스라인 대비 AUC +0.0222pt(사전 정의 채택 기준 0.01 초과)로 우세해
 챔피언 모델로 채택했습니다. 판단 근거와 전체 수치는 [REPORT.md](REPORT.md)를 참고하세요.
+새로 추가한 `BUREAU_DEBT_CREDIT_RATIO_MEAN`, `BUREAU_ACTIVE_RATIO`, `PREV_REFUSED_RATIO` 등이
+IV/SHAP 상위권에 올라 실제로 예측력에 기여함을 확인했습니다.
 
 등급별 실제 부도율(A가 가장 우량, E가 가장 위험):
 
 | grade | count | avg_score | default_rate |
 |---|---|---|---|
-| A | 61,502 | 602.0 | 0.87% |
-| B | 61,502 | 584.4 | 2.26% |
-| C | 61,502 | 570.6 | 4.52% |
-| D | 61,502 | 554.8 | 8.86% |
-| E | 61,503 | 527.4 | 23.86% |
+| A | 61,502 | 605.0 | 0.67% |
+| B | 61,502 | 586.4 | 1.81% |
+| C | 61,502 | 572.0 | 3.97% |
+| D | 61,502 | 555.4 | 8.31% |
+| E | 61,503 | 526.3 | 25.60% |
 
 ## 실행 방법
 
@@ -131,6 +137,7 @@ credit-risk-scorecard/
     db.py                   # SQLite 스키마 초기화
     download_data.py        # Kaggle API 데이터 다운로드
     preprocess.py           # 결측치 처리 등 전처리
+    feature_engineering.py  # bureau/previous_application 결합 피처 엔지니어링
     woe_binning.py          # WoE/IV 계산 및 저장
     train_baseline.py       # 로지스틱 스코어카드 베이스라인
     train_advanced.py       # LightGBM + 챔피언-챌린저 판단
@@ -149,7 +156,7 @@ credit-risk-scorecard/
   requirements-app.txt          # app.py 전용 최소 의존성 (Streamlit Cloud 배포용)
   REPORT.md                     # 분석 리포트 (run.py가 자동 생성)
   PROGRESS.md                   # 단계별 진행 상황 기록
-  tests/                        # pytest 단위테스트 (WoE/IV, 점수 스케일링, PSI)
+  tests/                        # pytest 단위테스트 (WoE/IV, 점수 스케일링, PSI, 피처 엔지니어링)
 ```
 
 ## 데이터베이스 스키마 (SQLite)

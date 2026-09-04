@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src import preprocess, psi, scoring, shap_explain, simulation, train_advanced, train_baseline
+from src import feature_engineering, preprocess, psi, scoring, shap_explain, simulation, train_advanced, train_baseline
 from src import woe_binning as wb
 from src.db import get_connection, init_db
 
@@ -109,28 +109,32 @@ def build_report(baseline: dict, advanced: dict, champion: dict, sim_df: pd.Data
 
 def main() -> int:
     t0 = time.time()
-    print("[1/10] SQLite 스키마 초기화")
+    print("[1/11] SQLite 스키마 초기화")
     init_db()
     conn = get_connection()
 
-    print("[2/10] 원본 데이터 로드 및 전처리")
+    print("[2/11] 원본 데이터 로드 및 전처리")
     raw_df = preprocess.load_raw()
     df = preprocess.basic_preprocess(raw_df)
     print(f"  -> {df.shape[0]:,} rows, {df.shape[1]} columns after preprocessing")
 
-    print("[3/10] applicants 테이블 저장")
+    print("[3/11] bureau/previous_application 피처 엔지니어링")
+    df = feature_engineering.build_extended_features(df)
+    print(f"  -> {df.shape[1]} columns after feature engineering")
+
+    print("[4/11] applicants 테이블 저장")
     preprocess.save_applicants(df, conn)
 
-    print("[4/10] WoE/IV 계산 + 로지스틱 베이스라인 스코어카드 학습")
+    print("[5/11] WoE/IV 계산 + 로지스틱 베이스라인 스코어카드 학습")
     baseline = train_baseline.run_baseline(df, conn)
     print(f"  -> baseline AUC={baseline['auc']:.4f} KS={baseline['ks']:.4f} Gini={baseline['gini']:.4f} "
           f"(features={len(baseline['selected_features'])})")
 
-    print("[5/10] LightGBM 고도화 모델 학습")
+    print("[6/11] LightGBM 고도화 모델 학습")
     advanced = train_advanced.run_lightgbm(baseline["train_df"], baseline["test_df"], conn)
     print(f"  -> lightgbm AUC={advanced['auc']:.4f} KS={advanced['ks']:.4f} Gini={advanced['gini']:.4f}")
 
-    print("[6/10] 챔피언-챌린저 판단 및 점수/등급 산출")
+    print("[7/11] 챔피언-챌린저 판단 및 점수/등급 산출")
     champion = train_advanced.choose_champion(baseline, advanced)
     print(f"  -> champion={champion['champion']} ({champion['reason']})")
 
@@ -160,11 +164,11 @@ def main() -> int:
         .reset_index()
     )
 
-    print("[7/10] 컷오프 시뮬레이션")
+    print("[8/11] 컷오프 시뮬레이션")
     sim_df = simulation.simulate_cutoffs(score_series, pd.Series(target_full))
     simulation.save_cutoff_simulation(sim_df, champion_run_id, conn)
 
-    print("[8/10] PSI 안정성 점검 (train vs test)")
+    print("[9/11] PSI 안정성 점검 (train vs test)")
     train_scores = score_series.loc[baseline["train_df"].index]
     test_scores = score_series.loc[baseline["test_df"].index]
     psi_rows = []
@@ -179,7 +183,7 @@ def main() -> int:
         psi_rows.append((feature, "test_vs_train", feature_psi))
     print(f"  -> score PSI={score_psi:.4f}")
 
-    print("[9/10] SHAP 해석")
+    print("[10/11] SHAP 해석")
     try:
         if champion["champion"] == "lightgbm":
             X_shap = baseline["test_df"][advanced["feature_cols"]].copy()
@@ -199,7 +203,7 @@ def main() -> int:
         print(f"  -> SHAP 생성 실패 (계속 진행): {e}")
         shap_path = None
 
-    print("[10/10] REPORT.md 작성")
+    print("[11/11] REPORT.md 작성")
     report = build_report(
         baseline, advanced, champion, sim_df, grade_stats,
         n_rows=df.shape[0], n_features_selected=len(baseline["selected_features"]),
