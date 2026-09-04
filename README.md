@@ -37,9 +37,13 @@ LightGBM이 베이스라인 대비 AUC +0.0291pt(사전 정의 채택 기준 0.0
 
 ## 실행 방법
 
-### 0. 의존성 설치
+### 0. 클론 및 의존성 설치
+
+로컬 작업 경로: `C:\Users\aicam\Projects\credit-risk-scorecard`
 
 ```bash
+git clone https://github.com/Dajeong0315/credit-risk-scorecard.git
+cd credit-risk-scorecard
 pip install -r requirements.txt
 ```
 
