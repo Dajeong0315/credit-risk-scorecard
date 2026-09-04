@@ -91,7 +91,7 @@ def build_report(baseline: dict, advanced: dict, champion: dict, sim_df: pd.Data
 
     lines.append("## 7. SHAP 해석\n")
     if shap_image_path is not None:
-        rel_path = Path(shap_image_path).as_posix()
+        rel_path = Path(shap_image_path).resolve().relative_to(Path.cwd().resolve()).as_posix()
         lines.append(f"챔피언 모델(`{champion['champion']}`)의 SHAP summary plot (테스트셋 샘플 기준):\n")
         lines.append(f"![SHAP summary plot]({rel_path})\n")
     else:

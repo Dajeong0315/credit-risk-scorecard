@@ -21,12 +21,12 @@
 
 ## 확장 흐름 (MVP 완료 후)
 
-- [ ] PSI 안정성 점검 (`psi_monitoring`)
-- [ ] SHAP 해석 (summary plot → REPORT.md 삽입)
-- [ ] Streamlit 대시보드 (`app.py`)
-- [ ] 자소서/면접용 요약 문서 (.docx)
-- [ ] 챔피언-챌린저 비교 섹션 정리
-- [ ] (선택, 사용자 확인 후) 배포
+- [x] PSI 안정성 점검 (`psi_monitoring`, train vs test, score + top 5 IV 변수)
+- [x] SHAP 해석 (summary plot → REPORT.md 삽입, `outputs/shap_summary.png`)
+- [x] Streamlit 대시보드 (`app.py`, 컷오프 슬라이더 인터랙티브 확인 완료)
+- [x] 자소서/면접용 요약 문서 (.docx, DB에서 핵심 수치 자동 추출)
+- [x] 챔피언-챌린저 비교 섹션 정리 (REPORT.md 3절, README.md 요약 섹션)
+- [ ] (선택, 사용자 확인 후) 배포 — 아직 요청 없음, 보류
 
 ## 결정 / 이슈 로그
 
@@ -35,3 +35,6 @@
 - 2026-09-04: `preprocess.save_applicants`가 `df.to_dict(orient="records")`를 사용해 30만 행 x 105열 처리가 매우 느렸음(수 분 이상) → `.values.tolist()` 기반으로 재작성해 속도 개선(`run.py` 전체 실행 시간 약 180초).
 - 2026-09-04: 챔피언-챌린저 결과 — LightGBM(AUC 0.7605)이 로지스틱 WoE 베이스라인(AUC 0.7428) 대비 +0.0177pt 우세, 채택 기준(0.01) 초과 → LightGBM을 챔피언으로 채택. 근거는 REPORT.md 3절 참고.
 - 2026-09-04: IV 기준 변수 선택 임계값은 0.02~0.5(스코어카드 업계 표준: <0.02 무의미, >0.5 의심스러운 leakage) 사용, 상위 25개 변수로 로지스틱 스코어카드 구성.
+- 2026-09-04: PSI는 train vs test 랜덤 분할 기준으로 계산(스펙에서 "train vs test 또는 time-split" 중 선택 가능). 결과 PSI≈0.0003으로 매우 안정적 — 랜덤 분할이라 당연한 결과이므로, 실제 운영 환경이라면 time-split 기준 PSI를 추가로 보는 것을 권장한다는 점을 REPORT.md에 남기지는 않았으나 참고 사항으로 기록.
+- 2026-09-04: docx 생성용 `docx` npm 패키지가 이 로컬 환경에는 사전 설치되어 있지 않아 프로젝트 폴더에 로컬 설치(`npm install docx`, node_modules는 git ignore)로 진행. 스킬이 제시한 LibreOffice 기반 PDF 변환 검증 스크립트(soffice.py)는 Windows에서 미지원(AF_UNIX 소켓 의존)이라 실행 불가 — 대신 docx(zip) 구조와 XML 텍스트 추출로 내용을 검증함.
+- 2026-09-04: GitHub 저장소(https://github.com/Dajeong0315/credit-risk-scorecard, public)에 연결 완료. 커밋 author는 GitHub noreply 이메일(Dajeong0315@users.noreply.github.com) 사용 — 공개 저장소라 실제 이메일 노출을 피하기 위함(사용자 확인 후 결정).

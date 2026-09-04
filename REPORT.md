@@ -79,14 +79,33 @@
 | 600.3 | 10.00% | 0.55% | 0.25% |
 | 606.7 | 5.00% | 0.34% | 0.15% |
 
-## 6. 재현 방법
+## 6. PSI(Population Stability Index) 안정성 점검
+
+- 기준(expected)=train, 비교 대상(actual)=test 분포. 해석: PSI<0.1 안정, 0.1~0.25 중간 수준 변화, >0.25 유의미한 변화(재학습 검토 필요)
+
+| target | period | psi_value | 해석 |
+|---|---|---|---|
+| score | test_vs_train | 0.0003 | 안정 |
+| EXT_SOURCE_3 | test_vs_train | 0.0001 | 안정 |
+| EXT_SOURCE_2 | test_vs_train | 0.0001 | 안정 |
+| EXT_SOURCE_1 | test_vs_train | 0.0002 | 안정 |
+| DAYS_EMPLOYED | test_vs_train | 0.0001 | 안정 |
+| AMT_GOODS_PRICE | test_vs_train | 0.0001 | 안정 |
+
+## 7. SHAP 해석
+
+챔피언 모델(`lightgbm`)의 SHAP summary plot (테스트셋 샘플 기준):
+
+![SHAP summary plot](outputs/shap_summary.png)
+
+## 8. 재현 방법
 
 ```bash
 python run.py
 pytest tests/
 ```
 
-## 7. 참고
+## 9. 참고
 
 - 상세 진행 로그: [PROGRESS.md](PROGRESS.md)
 - SQLite 스키마: [src/db.py](src/db.py)

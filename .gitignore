@@ -11,5 +11,6 @@ __pycache__/
 *.egg-info/
 venv/
 .venv/
-outputs/*.png
-outputs/*.docx
+node_modules/
+package-lock.json
+outputs/summary_data.json
