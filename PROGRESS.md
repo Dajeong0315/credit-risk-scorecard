@@ -26,7 +26,7 @@
 - [x] Streamlit 대시보드 (`app.py`, 컷오프 슬라이더 인터랙티브 확인 완료)
 - [x] 자소서/면접용 요약 문서 (.docx, DB에서 핵심 수치 자동 추출)
 - [x] 챔피언-챌린저 비교 섹션 정리 (REPORT.md 3절, README.md 요약 섹션)
-- [ ] (선택, 사용자 확인 후) 배포 — 아직 요청 없음, 보류
+- [x] (선택, 사용자 확인 후) 배포 — 사용자가 Streamlit Cloud 배포 요청. 저장소/DB/requirements 준비 완료, 실제 배포(GitHub OAuth 로그인 포함)는 사용자가 share.streamlit.io에서 직접 진행해야 함 (README "4-1. Streamlit Community Cloud 배포용 준비" 참고)
 
 ## 결정 / 이슈 로그
 
@@ -38,3 +38,4 @@
 - 2026-09-04: PSI는 train vs test 랜덤 분할 기준으로 계산(스펙에서 "train vs test 또는 time-split" 중 선택 가능). 결과 PSI≈0.0003으로 매우 안정적 — 랜덤 분할이라 당연한 결과이므로, 실제 운영 환경이라면 time-split 기준 PSI를 추가로 보는 것을 권장한다는 점을 REPORT.md에 남기지는 않았으나 참고 사항으로 기록.
 - 2026-09-04: docx 생성용 `docx` npm 패키지가 이 로컬 환경에는 사전 설치되어 있지 않아 프로젝트 폴더에 로컬 설치(`npm install docx`, node_modules는 git ignore)로 진행. 스킬이 제시한 LibreOffice 기반 PDF 변환 검증 스크립트(soffice.py)는 Windows에서 미지원(AF_UNIX 소켓 의존)이라 실행 불가 — 대신 docx(zip) 구조와 XML 텍스트 추출로 내용을 검증함.
 - 2026-09-04: GitHub 저장소(https://github.com/Dajeong0315/credit-risk-scorecard, public)에 연결 완료. 커밋 author는 GitHub noreply 이메일(Dajeong0315@users.noreply.github.com) 사용 — 공개 저장소라 실제 이메일 노출을 피하기 위함(사용자 확인 후 결정).
+- 2026-09-04: Streamlit Cloud 배포 준비. 전체 db(1.6GB, 대부분 features_woe 768만 행)는 GitHub/Cloud에 올릴 수 없어, app.py가 실제로 쓰는 5개 테이블만 담은 `db/dashboard.db`(~7MB)를 별도로 export해 커밋(`src/export_dashboard_db.py`). app.py는 dashboard.db가 있으면 우선 사용, 없으면 전체 db로 자동 폴백하도록 수정. Streamlit Cloud용 최소 requirements-app.txt(streamlit/pandas/plotly만)도 별도 추가 — 빌드 시간 단축 목적. 실제 배포(GitHub 계정 로그인/OAuth 인증)는 Claude가 대신할 수 없는 영역이라 사용자가 share.streamlit.io에서 직접 진행해야 함을 안내.

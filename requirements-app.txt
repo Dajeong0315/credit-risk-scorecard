@@ -1,0 +1,7 @@
+# Minimal dependencies for app.py only (used as the Streamlit Cloud deployment
+# requirements file). The full requirements.txt (model training, SHAP, etc.) is
+# unnecessary for the dashboard, which only reads db/dashboard.db and a static
+# SHAP image.
+streamlit>=1.30
+pandas>=2.0
+plotly>=5.18

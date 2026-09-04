@@ -75,6 +75,34 @@ streamlit run app.py
 
 모델 실행(run) 선택, 컷오프 슬라이더로 승인율/예상 부도율/예상 손실률을 실시간으로 확인할 수 있습니다.
 
+로컬 실행 시 `app.py`는 `db/credit_scoring.db`(run.py가 만든 전체 DB, 1GB+)를 그대로 읽습니다.
+
+### 4-1. Streamlit Community Cloud 배포용 준비
+
+전체 DB(`db/credit_scoring.db`)는 대부분 `features_woe`(768만 행)가 차지해 1GB가 넘어
+GitHub/Streamlit Cloud에 올릴 수 없습니다. 대시보드가 실제로 쓰는 5개 테이블
+(`model_runs`, `iv_summary`, `cutoff_simulation`, `psi_monitoring`, `scores`)만 담은
+가벼운 `db/dashboard.db`(약 7MB)를 따로 만들어 커밋합니다. `app.py`는 `db/dashboard.db`가
+있으면 그것을 우선 사용하고, 없으면 전체 DB로 자동 대체합니다.
+
+```bash
+python src/export_dashboard_db.py   # db/dashboard.db 생성 (git에 커밋 대상)
+git add db/dashboard.db && git commit -m "Update dashboard.db" && git push
+```
+
+배포 시 Streamlit Cloud의 "Advanced settings → Python dependencies file"에
+`requirements-app.txt`(streamlit/pandas/plotly만 포함, 빌드가 훨씬 빠름)를 지정하는 것을
+권장합니다. 지정하지 않으면 기본 `requirements.txt`(lightgbm/shap 포함)로도 동작은 하지만
+빌드 시간이 더 깁니다.
+
+**Streamlit Cloud 배포 단계** (GitHub 로그인/OAuth 인증은 본인이 직접 진행해야 합니다):
+
+1. [share.streamlit.io](https://share.streamlit.io) 접속 → GitHub 계정으로 로그인
+2. "Create app" → "Deploy a public app from GitHub" 선택
+3. Repository: `Dajeong0315/credit-risk-scorecard`, Branch: `main`, Main file path: `app.py`
+4. "Advanced settings"에서 Python dependencies file을 `requirements-app.txt`로 지정 (권장)
+5. "Deploy" 클릭 → 빌드 완료 후 공개 URL 발급
+
 ### 5. 자소서/면접용 요약 문서(.docx) 생성
 
 SQLite 결과에서 핵심 수치를 자동 추출해 Word 문서를 생성합니다 (Node.js 필요).
@@ -92,8 +120,13 @@ node scripts/build_summary_docx.js
 ```
 credit-risk-scorecard/
   data/raw/                 # 원본 데이터 (git ignore)
-  db/credit_scoring.db      # SQLite 결과 저장소 (git ignore)
-  outputs/                  # SHAP 이미지, docx 등 생성 산출물 (git ignore)
+  db/
+    credit_scoring.db       # 전체 SQLite 결과 저장소, 1GB+ (git ignore)
+    dashboard.db             # 대시보드/배포용 경량 DB, ~7MB (git 커밋 대상)
+  outputs/
+    shap_summary.png          # SHAP summary plot (git 커밋 대상, REPORT.md에서 참조)
+    credit_risk_scorecard_summary.docx  # 자소서/면접 요약 문서 (git 커밋 대상)
+    summary_data.json          # docx 생성용 중간 산출물 (git ignore)
   src/
     db.py                   # SQLite 스키마 초기화
     download_data.py        # Kaggle API 데이터 다운로드
@@ -106,11 +139,14 @@ credit-risk-scorecard/
     psi.py                     # PSI 안정성 점검
     shap_explain.py            # SHAP 해석 (summary plot)
     generate_docx_data.py       # docx용 핵심 수치 JSON 추출
+    export_dashboard_db.py       # 배포용 경량 DB(dashboard.db) 생성
   scripts/
     build_summary_docx.js       # 자소서/면접 요약 docx 생성 (docx-js)
   notebooks/                    # 탐색용 노트북 (src 모듈 재사용)
   app.py                        # Streamlit 대시보드
   run.py                        # MVP 전체 자동 실행 진입점
+  requirements.txt              # 전체 의존성 (학습/분석 포함)
+  requirements-app.txt          # app.py 전용 최소 의존성 (Streamlit Cloud 배포용)
   REPORT.md                     # 분석 리포트 (run.py가 자동 생성)
   PROGRESS.md                   # 단계별 진행 상황 기록
   tests/                        # pytest 단위테스트 (WoE/IV, 점수 스케일링, PSI)

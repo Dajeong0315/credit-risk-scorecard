@@ -1,6 +1,7 @@
 data/raw/*
 !data/raw/.gitkeep
 db/*.db
+!db/dashboard.db
 db/*.db-journal
 db/*.db-wal
 db/*.db-shm

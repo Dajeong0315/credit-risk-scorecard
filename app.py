@@ -10,7 +10,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-DB_PATH = Path(__file__).resolve().parent / "db" / "credit_scoring.db"
+_DASHBOARD_DB = Path(__file__).resolve().parent / "db" / "dashboard.db"
+_FULL_DB = Path(__file__).resolve().parent / "db" / "credit_scoring.db"
+# Prefer the small, deployable dashboard.db (exported via src/export_dashboard_db.py)
+# when present; fall back to the full local db produced directly by run.py.
+DB_PATH = _DASHBOARD_DB if _DASHBOARD_DB.exists() else _FULL_DB
 
 # Colors from the project's validated categorical/status palette (dataviz skill reference).
 COLOR_BLUE = "#2a78d6"
