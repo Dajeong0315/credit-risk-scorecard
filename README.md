@@ -3,35 +3,37 @@
 Home Credit Default Risk(Kaggle) 데이터를 사용해 실제 여신심사 업무 흐름을
 처음부터 끝까지 재현하는 포트폴리오 프로젝트입니다.
 
-변수처리(application + bureau + previous_application 결합 피처 엔지니어링) → WoE/IV
-스코어카드 → 고도화 모델(LightGBM) → 챔피언-챌린저 비교 → 등급설계(A-E) →
-컷오프 시뮬레이션(승인율/부도율/손실률) → 안정성(PSI)/해석(SHAP) →
+변수처리(application + bureau + previous_application + POS/신용카드/상환내역 결합 피처
+엔지니어링) → WoE/IV 스코어카드 → 고도화 모델(LightGBM) → 챔피언-챌린저 비교 →
+등급설계(A-E) → 컷오프 시뮬레이션(승인율/부도율/손실률) → 안정성(PSI)/해석(SHAP) →
 Streamlit 대시보드 → 자소서/면접용 요약 문서(.docx)
 
 ## 챔피언-챌린저 결과 요약
 
-application_train.csv 단독 대비, 신용정보(bureau) + 과거 대출 이력(previous_application)을
-결합한 피처 엔지니어링으로 AUC가 로지스틱 +0.0059pt, LightGBM +0.0104pt 개선되었습니다.
+application_train.csv 단독(AUC 0.7605) 대비, 신용정보(bureau)·과거 대출 이력
+(previous_application)·POS/현금대출 상태·신용카드 잔액·할부상환 내역 5개 테이블을
+결합한 피처 엔지니어링으로 LightGBM AUC가 **0.7605 → 0.7821 (+0.0216)** 로 개선되었습니다.
 
 | model | AUC | KS | Gini |
 |---|---|---|---|
-| 로지스틱 (WoE 스코어카드, 베이스라인) | 0.7487 | 0.3752 | 0.4973 |
-| **LightGBM (고도화 모델, 챔피언)** | **0.7709** | **0.4057** | **0.5417** |
+| 로지스틱 (WoE 스코어카드, 베이스라인) | 0.7530 | 0.3805 | 0.5061 |
+| **LightGBM (고도화 모델, 챔피언)** | **0.7821** | **0.4281** | **0.5643** |
 
-LightGBM이 베이스라인 대비 AUC +0.0222pt(사전 정의 채택 기준 0.01 초과)로 우세해
+LightGBM이 베이스라인 대비 AUC +0.0291pt(사전 정의 채택 기준 0.01 초과)로 우세해
 챔피언 모델로 채택했습니다. 판단 근거와 전체 수치는 [REPORT.md](REPORT.md)를 참고하세요.
-새로 추가한 `BUREAU_DEBT_CREDIT_RATIO_MEAN`, `BUREAU_ACTIVE_RATIO`, `PREV_REFUSED_RATIO` 등이
-IV/SHAP 상위권에 올라 실제로 예측력에 기여함을 확인했습니다.
+새로 추가한 `BUREAU_DEBT_CREDIT_RATIO_MEAN`, `CC_UTILIZATION_MEAN`, `INSTAL_DPD_MEAN`(할부
+상환 연체일수, EXT_SOURCE 3개 다음으로 SHAP 4위) 등이 IV/SHAP 상위권에 실제로 올라
+예측력에 기여함을 확인했습니다.
 
 등급별 실제 부도율(A가 가장 우량, E가 가장 위험):
 
 | grade | count | avg_score | default_rate |
 |---|---|---|---|
-| A | 61,502 | 605.0 | 0.67% |
-| B | 61,502 | 586.4 | 1.81% |
-| C | 61,502 | 572.0 | 3.97% |
-| D | 61,502 | 555.4 | 8.31% |
-| E | 61,503 | 526.3 | 25.60% |
+| A | 61,502 | 606.9 | 0.64% |
+| B | 61,502 | 587.9 | 1.70% |
+| C | 61,502 | 573.4 | 3.56% |
+| D | 61,502 | 556.3 | 7.94% |
+| E | 61,503 | 525.3 | 26.51% |
 
 ## 실행 방법
 

@@ -33,8 +33,11 @@
 - [x] bureau.csv + bureau_balance.csv + previous_application.csv 결합 피처 엔지니어링 (`src/feature_engineering.py`)
   - AUC 개선: 로지스틱 0.7428→0.7487(+0.0059), LightGBM 0.7605→0.7709(+0.0104)
   - 신규 피처(BUREAU_DEBT_CREDIT_RATIO_MEAN, BUREAU_ACTIVE_RATIO, PREV_REFUSED_RATIO 등)가 IV/SHAP 상위권에 실제로 등장해 기여도 확인
-  - POS_CASH_balance.csv / credit_card_balance.csv / installments_payments.csv는 SK_ID_PREV 기준 2단계 롤업이 필요해 이번 라운드에서는 범위 제외 (추가 고도화 여지로 남김)
-- [ ] POS_CASH_balance / credit_card_balance / installments_payments 결합 (미착수, 필요 시 진행)
+- [x] POS_CASH_balance.csv + credit_card_balance.csv + installments_payments.csv 결합 (SK_ID_CURR을 직접 보유하고 있어 2단계 롤업 불필요, 예상보다 단순했음)
+  - AUC 추가 개선: 로지스틱 0.7487→0.7530(+0.0043), LightGBM 0.7709→0.7821(+0.0112)
+  - **application_train.csv 단독 대비 누적 개선**: 로지스틱 0.7428→0.7530(+0.0102), LightGBM 0.7605→0.7821(+0.0216)
+  - `INSTAL_DPD_MEAN`(할부상환 연체일수)이 SHAP 중요도 전체 4위(EXT_SOURCE 3개 다음)로 등극 — 가장 효과적인 신규 피처
+  - `CC_UTILIZATION_MEAN`(신용카드 이용률)도 IV 상위 15위 안에 진입
 
 ## 결정 / 이슈 로그
 
@@ -49,3 +52,4 @@
 - 2026-09-04: Streamlit Cloud 배포 준비. 전체 db(1.6GB, 대부분 features_woe 768만 행)는 GitHub/Cloud에 올릴 수 없어, app.py가 실제로 쓰는 5개 테이블만 담은 `db/dashboard.db`(~7MB)를 별도로 export해 커밋(`src/export_dashboard_db.py`). app.py는 dashboard.db가 있으면 우선 사용, 없으면 전체 db로 자동 폴백하도록 수정. Streamlit Cloud용 최소 requirements-app.txt(streamlit/pandas/plotly만)도 별도 추가 — 빌드 시간 단축 목적. 실제 배포(GitHub 계정 로그인/OAuth 인증)는 Claude가 대신할 수 없는 영역이라 사용자가 share.streamlit.io에서 직접 진행해야 함을 안내.
 - 2026-09-04: 배포 직후 사용자가 "글씨가 회색이라 잘 안 보임 / 차트 크기 조정 필요" 피드백. 원인: `.streamlit/config.toml`로 테마를 고정하지 않아 뷰어의 시스템 다크/라이트 설정에 따라 렌더링이 달라졌고, Plotly 차트는 라이트 배경 기준 색상을 하드코딩해둬서 불일치가 있었던 것으로 추정 → 라이트 테마를 명시적으로 고정하고, 차트 폰트/눈금/범례 색상과 높이를 명시적으로 키움. 로컬에서 라이트 테마로 재확인 후 배포, 이후 사용자가 정상 확인.
 - 2026-09-04: 사용자가 스펙에 없던 추가 고도화(다른 테이블 결합 피처 엔지니어링)를 요청 → bureau/bureau_balance/previous_application을 SK_ID_CURR 단위로 집계해 병합하는 `src/feature_engineering.py` 추가. run.py 파이프라인에 전처리 직후 단계로 통합(총 11단계로 변경). AUC 개선 확인(로지스틱 +0.0059, LightGBM +0.0104) → REPORT.md/README.md 수치 갱신, dashboard.db/docx 재생성 후 커밋.
+- 2026-09-04: 사용자가 이어서 POS_CASH_balance/credit_card_balance/installments_payments도 결합 요청. 세 테이블 모두 SK_ID_CURR을 직접 보유해 SK_ID_PREV 경유 2단계 롤업 없이 바로 집계 가능 — 애초 우려했던 것보다 단순했음. installments_payments.csv(723MB)가 가장 큰 원본 파일이라 전체 파이프라인 실행 시간이 ~180초→~226초로 늘어남. 결과: LightGBM AUC 0.7709→0.7821(+0.0112 추가, application_train 단독 대비 총 +0.0216). `INSTAL_DPD_MEAN`이 SHAP 전체 4위로 EXT_SOURCE 3개 다음으로 중요한 변수가 됨 — 상환 연체 패턴이 매우 강한 신호임을 확인. 새 집계 함수 3개에 대한 pytest 6개 추가(총 21개 통과).
